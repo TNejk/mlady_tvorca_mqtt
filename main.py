@@ -24,7 +24,7 @@ host = "localhost"
 password = ""       # insert your password
 db_port = 5433      # outside port
 
-def on_connect(client, userdata, flags, reasonCode, properties):
+def on_connect(client, userdata, flags, reasonCode):
     if reasonCode == 0:
         with open("logs.txt", "a") as f:
             f.write(f"{datetime.datetime.now()}; Connected with result code {reasonCode}\n")
@@ -34,7 +34,7 @@ def on_connect(client, userdata, flags, reasonCode, properties):
         with open("logs.txt", "a") as f:
             f.write(f"{datetime.datetime.now()}; Connection failed with result code {reasonCode}\n")
 
-def on_message(client, userdata, msg, properties):
+def on_message(client, userdata, msg):
     try:
         data = msg.payload.decode("utf-8")
         m_decoded = json.loads(data)
@@ -63,7 +63,7 @@ db_connect()
 
 # mqtt connect
 mqtt_connected = False
-client = mqtt.Client(client_id="localny_sniffer", reconnect_on_failure=True, protocol=mqtt.MQTTv5)
+client = mqtt.Client(client_id="localny_sniffer", reconnect_on_failure=True)
 client.on_connect = on_connect
 client.on_message = on_message
 client.connect(broker, mqtt_port)
