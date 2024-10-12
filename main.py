@@ -59,12 +59,12 @@ def db_connect():
             f.write(f"{datetime.datetime.now()};Connected failed with result code "+str(e))
 
 # db connect
-db_connect()
+# db_connect()
 
 # mqtt connect
 mqtt_connected = False
 try:
-    client = mqtt.Client(client_id="sniffer",reconnect_on_failure=True, protocol=mqtt.MQTTv5)
+    client = mqtt.Client(client_id="sniffer", protocol=mqtt.MQTTv5)
     client.on_connect = on_connect
     client.on_message = on_message
     client.connect(broker, mqtt_port)
