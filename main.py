@@ -63,7 +63,7 @@ db_connect()
 
 # mqtt connect
 mqtt_connected = False
-client = mqtt.Client()
+client = mqtt.Client(client_id="sniffer",reconnect_on_failure=True, protocol=mqtt.MQTTv5)
 client.on_connect = on_connect
 client.on_message = on_message
 client.connect(broker, mqtt_port)
