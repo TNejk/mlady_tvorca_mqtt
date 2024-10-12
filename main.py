@@ -63,7 +63,7 @@ db_connect()
 
 # mqtt connect
 mqtt_connected = False
-client = mqtt.Client(client_id="localny_sniffer")
+client = mqtt.Client()
 client.on_connect = on_connect
 client.on_message = on_message
 client.connect(broker, mqtt_port)
