@@ -24,15 +24,15 @@ host = "localhost"
 password = ""       # insert your password
 db_port = 5433      # outside port
 
-def on_connect(client, userdata, flags, reasonCode):
-    if reasonCode == 0:
+def on_connect(client, userdata, flags, reason_code, properties):
+    if reason_code == 0:
         with open("logs.txt", "a") as f:
-            f.write(f"{datetime.datetime.now()}; Connected with result code {reasonCode}\n")
+            f.write(f"{datetime.datetime.now()}; Connected with result code {reason_code}\n")
         global mqtt_connected
         mqtt_connected = True
     else:
         with open("logs.txt", "a") as f:
-            f.write(f"{datetime.datetime.now()}; Connection failed with result code {reasonCode}\n")
+            f.write(f"{datetime.datetime.now()}; Connection failed with result code {reason_code}\n")
 
 def on_message(client, userdata, msg):
     try:
