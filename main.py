@@ -63,18 +63,22 @@ db_connect()
 
 # mqtt connect
 mqtt_connected = False
-client = mqtt.Client(client_id="sniffer",reconnect_on_failure=True, protocol=mqtt.MQTTv5)
-client.on_connect = on_connect
-client.on_message = on_message
-client.connect(broker, mqtt_port)
-
-client.loop_start()
-wait_for_mqtt()
-
 try:
-  while True:
-    pass
-except KeyboardInterrupt:
-  print("exiting")
-  client.disconnect()
-  client.loop_stop()
+    client = mqtt.Client(client_id="sniffer",reconnect_on_failure=True, protocol=mqtt.MQTTv5)
+    client.on_connect = on_connect
+    client.on_message = on_message
+    client.connect(broker, mqtt_port)
+
+    client.loop_start()
+    wait_for_mqtt()
+
+    try:
+      while True:
+        pass
+    except KeyboardInterrupt:
+      print("exiting")
+      client.disconnect()
+      client.loop_stop()
+except Exception as e:
+    with open("wtf.txt", "a") as f:
+        f.write(f"Error: {str(e)}\n")
