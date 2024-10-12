@@ -64,7 +64,7 @@ def db_connect():
 # mqtt connect
 mqtt_connected = False
 try:
-    client = mqtt.Client(client_id="sniffer", protocol=mqtt.MQTTv5)
+    client = mqtt.Client(protocol=mqtt.MQTTv5)
     client.on_connect = on_connect
     client.on_message = on_message
     client.connect(broker, mqtt_port)
