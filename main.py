@@ -34,11 +34,15 @@ def on_connect(client, userdata, flags, rc):
         with open("logs.txt", "a") as f:
             f.write(f"{datetime.datetime.now()};Connected failed with result code "+str(rc))
 
-def on_message(client, userdata, msg):
-    data = msg.payload.decode("utf-8")
-    m_decoded = json.loads(data)
-    with open("temp_readings.txt", "a") as f:
-        f.write(m_decoded+"\n")
+def on_message(client, userdata, msg, properties):
+    try:
+        data = msg.payload.decode("utf-8")
+        m_decoded = json.loads(data)
+        with open("temp_readings.txt", "a") as f:
+            f.write(json.dumps(m_decoded) + "\n")
+    except (json.JSONDecodeError, IOError) as e:
+        with open("error_logs.txt", "a") as error_file:
+            error_file.write(f"{datetime.datetime.now()}; Error: {str(e)}\n")
 
 def wait_for_mqtt():
     global mqtt_connected
