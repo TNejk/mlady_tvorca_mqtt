@@ -1,7 +1,5 @@
 import json
 import datetime
-import time
-
 import paho.mqtt.client as mqtt
 import psycopg2
 
