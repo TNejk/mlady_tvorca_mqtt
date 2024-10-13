@@ -16,8 +16,6 @@ topics = [
 ]
 
 # Database connection parameters
-db_connection = None
-cursor = None
 db = "postgres"
 user = "postgres"
 host = "localhost"
@@ -59,19 +57,21 @@ def wait_for_mqtt():
 
 
 def db_connect():
-    global db_connection, cursor
     try:
         db_connection = psycopg2.connect(database=db, user=user, password=password, host=host, port=db_port)
-        cursor = db_connection.cursor()
         with open("logs.txt", "a") as f:
             f.write(f"{datetime.datetime.now()}; Connected to the database!\n")
+        return db_connection
     except psycopg2.Error as e:
         with open("logs.txt", "a") as f:
             f.write(f"{datetime.datetime.now()}; Connection failed with result code {str(e)}\n")
+        return None
 
 # db connect
-db_connect()
-
+db_connection = db_connect()
+if db_connection is not None:
+    cursor = db_connection.cursor()
+    
 # MQTT connect
 mqtt_connected = False
 client = mqtt.Client(client_id="localny_sniffer", reconnect_on_failure=True)
