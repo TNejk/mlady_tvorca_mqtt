@@ -58,20 +58,19 @@ def wait_for_mqtt():
 
 def db_connect():
     try:
-        db_connection = psycopg2.connect(database=db, user=user, password=password, host=host, port=db_port)
+        conn = psycopg2.connect(database=db, user=user, password=password, host=host, port=db_port)
+        curs = conn.cursor()
         with open("logs.txt", "a") as f:
             f.write(f"{datetime.datetime.now()}; Connected to the database!\n")
-        return db_connection
+        return conn, curs
     except psycopg2.Error as e:
         with open("logs.txt", "a") as f:
             f.write(f"{datetime.datetime.now()}; Connection failed with result code {str(e)}\n")
         return None
 
 # db connect
-db_connection = db_connect()
-if db_connection is not None:
-    cursor = db_connection.cursor()
-    
+db_connection, cursor = db_connect()
+
 # MQTT connect
 mqtt_connected = False
 client = mqtt.Client(client_id="localny_sniffer", reconnect_on_failure=True)
