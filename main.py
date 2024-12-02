@@ -1,88 +1,77 @@
+import os
 import json
 import datetime
-import paho.mqtt.client as mqtt
 import psycopg2
+import paho.mqtt.client as mqtt
+import signal
 
-# MQTT connection parameters
+# Configuration
 broker = "193.87.172.144"
 mqtt_port = 1983
+db = os.getenv("DB_NAME", "postgres")
+user = os.getenv("DB_USER", "postgres")
+password = os.getenv("DB_PASSWORD", "")
+host = os.getenv("DB_HOST", "localhost")
+db_port = os.getenv("DB_PORT", 5433)
 
-# Topics to subscribe to
 topics = [
-    ("Tunel_1/esp32/TeplotaVzduchu", 1),
-    ("Tunel_1/esp32/VlhkostVzduchu", 1),
-    ("Tunel_1/esp32/TlakVzduchu", 1),
-    ("Tunel_1/esp32/AeroVrtula", 1)
+ ("Tunel_1/esp32/TeplotaVzduchu", 1),
+ ("Tunel_1/esp32/VlhkostVzduchu", 1),
+ ("Tunel_1/esp32/TlakVzduchu", 1),
+ ("Tunel_1/esp32/AeroVrtula", 1)
 ]
 
-# Database connection parameters
-db = "postgres"
-user = "postgres"
-host = "localhost"
-password = ""  # Insert your password
-db_port = 5433  # Outside port
-
-def on_connect(client, userdata, flags, reason_code, properties=None):
-    if reason_code == 0:
-        with open("logs.txt", "a") as f:
-            f.write(f"{datetime.datetime.now()}; Connected with result code {reason_code}\n")
-        global mqtt_connected
-        mqtt_connected = True
-    else:
-        with open("logs.txt", "a") as f:
-            f.write(f"{datetime.datetime.now()}; Connection failed with result code {reason_code}\n")
-
-
-def on_message(client, userdata, msg, properties=None):
-    global conn
-    try:
-        conn = db_connect()
-        with conn.cursor() as cursor:
-            recieved = msg.payload.decode("utf-8")
-            m_decoded = json.loads(recieved)
-            data = json.dumps(m_decoded)
-            topic = msg.topic
-            write = f"INSERT INTO mqtt_data (topic, data) VALUES ('{topic}', '{data}')"
-            cursor.execute(write)
-            conn.commit()
-    except (json.JSONDecodeError, IOError) as e:
-        with open("error_logs.txt", "a") as error_file:
-            error_file.write(f"{datetime.datetime.now()}; Error: {str(e)}\n")
-    finally:
-        conn.close()
-
-
-def wait_for_mqtt():
-    global mqtt_connected
-    while not mqtt_connected:
-        pass
-    client.subscribe(topics)
-
+conn = None
 
 def db_connect():
-    try:
-        conn = psycopg2.connect(database=db, user=user, password=password, host=host, port=db_port)
-        with open("logs.txt", "a") as f:
-            f.write(f"{datetime.datetime.now()}; Connected to the database!\n")
-        return conn
-    except psycopg2.Error as e:
-        with open("logs.txt", "a") as f:
-            f.write(f"{datetime.datetime.now()}; Connection failed with result code {str(e)}\n")
-        return None
+ global conn
+ if conn is None or conn.closed != 0:
+     try:
+         conn = psycopg2.connect(database=db, user=user, password=password, host=host, port=db_port)
+         print("Database connected")
+     except psycopg2.Error as e:
+         print(f"Database connection failed: {str(e)}")
+ return conn
 
-# MQTT connect
-mqtt_connected = False
+def cleanup(sig, frame):
+ if conn:
+     conn.close()
+ client.disconnect()
+ client.loop_stop()
+ print("Clean exit")
+ exit(0)
+
+def on_connect(client, userdata, flags, reason_code, properties=None):
+ print(f"Connected with result code {reason_code}")
+ if reason_code == 0:
+     client.subscribe(topics)
+
+def on_message(client, userdata, msg, properties=None):
+ try:
+     conn = db_connect()
+     with conn.cursor() as cursor:
+         received = msg.payload.decode("utf-8")
+         data = json.dumps(json.loads(received))
+         cursor.execute("INSERT INTO mqtt_data (topic, data) VALUES (%s, %s)", (msg.topic, data))
+         conn.commit()
+ except Exception as e:
+     print(f"Error processing message: {str(e)}")
+
+# Signal Handling
+signal.signal(signal.SIGINT, cleanup)
+signal.signal(signal.SIGTERM, cleanup)
+
+# MQTT Client
 client = mqtt.Client(client_id="localny_sniffer", reconnect_on_failure=True)
 client.on_connect = on_connect
 client.on_message = on_message
+
 client.connect(broker, mqtt_port)
 client.loop_start()
-wait_for_mqtt()
 
+# Main Loop
 try:
-    while True:
-        pass
+ while True:
+     pass
 except KeyboardInterrupt:
-    print("Exiting")
-    client.disconnect()
-    client.loop_stop()
+ cleanup(None, None)
