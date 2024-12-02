@@ -34,19 +34,22 @@ def on_connect(client, userdata, flags, reason_code, properties=None):
 
 
 def on_message(client, userdata, msg, properties=None):
-    global db_connection, cursor
+    global conn
     try:
-        recieved = msg.payload.decode("utf-8")
-        m_decoded = json.loads(recieved)
-        data = json.dumps(m_decoded)
-        topic = msg.topic
-        write = f"INSERT INTO mqtt_data (topic, data) VALUES ('{topic}', '{data}')"
-        cursor.execute(write)
-        db_connection.commit()
+        conn = db_connect()
+        with conn.cursor() as cursor:
+            recieved = msg.payload.decode("utf-8")
+            m_decoded = json.loads(recieved)
+            data = json.dumps(m_decoded)
+            topic = msg.topic
+            write = f"INSERT INTO mqtt_data (topic, data) VALUES ('{topic}', '{data}')"
+            cursor.execute(write)
+            conn.commit()
     except (json.JSONDecodeError, IOError) as e:
-        db_connection.rollback()
         with open("error_logs.txt", "a") as error_file:
             error_file.write(f"{datetime.datetime.now()}; Error: {str(e)}\n")
+    finally:
+        conn.close()
 
 
 def wait_for_mqtt():
@@ -59,17 +62,13 @@ def wait_for_mqtt():
 def db_connect():
     try:
         conn = psycopg2.connect(database=db, user=user, password=password, host=host, port=db_port)
-        curs = conn.cursor()
         with open("logs.txt", "a") as f:
             f.write(f"{datetime.datetime.now()}; Connected to the database!\n")
-        return conn, curs
+        return conn
     except psycopg2.Error as e:
         with open("logs.txt", "a") as f:
             f.write(f"{datetime.datetime.now()}; Connection failed with result code {str(e)}\n")
         return None
-
-# db connect
-db_connection, cursor = db_connect()
 
 # MQTT connect
 mqtt_connected = False
@@ -87,5 +86,3 @@ except KeyboardInterrupt:
     print("Exiting")
     client.disconnect()
     client.loop_stop()
-    cursor.close()
-    db_connection.close()
